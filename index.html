@@ -27,7 +27,9 @@
           border:4px solid var(--accent); border-radius:14px; background:#fff; color:var(--text); }
   input::placeholder { color:#777; font-weight:400; font-size:0.8em; }
   input:focus { outline:4px solid var(--hl); }
-  #clear { font-size:0.85em; padding:0 14px; border:0; border-radius:14px; background:#6b7280; color:#fff; font-weight:700; }
+  #go { font-size:0.95em; padding:0 14px; border:0; border-radius:14px; background:#15803d; color:#fff; font-weight:800; white-space:nowrap; }
+  body.typing #mic { display:none; }   /* 打字時隱藏語音鍵，讓結果多一點空間 */
+  #again { display:block; width:100%; margin-top:16px; height:2.4em; font-size:1em; font-weight:700; border:3px solid var(--accent); border-radius:14px; background:#fff; color:var(--accent); }
   #mic { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin-top:10px; height:2.4em;
          font-size:1em; font-weight:700; border:0; border-radius:14px; background:var(--accent); color:#fff; }
   #mic.on { background:#dc2626; }
@@ -56,7 +58,7 @@
   <label for="q">請輸入名字或編號</label>
   <div class="bar">
     <input id="q" type="search" placeholder="例如：陳亮寰" autocomplete="off" enterkeyhint="search">
-    <button id="clear" type="button" hidden>清除</button>
+    <button id="go" type="button">🔍 搜尋</button>
   </div>
   <button id="mic" type="button" hidden>🎤 按這裡用說的</button>
 </header>
@@ -127,9 +129,8 @@ function card([code, name, pages], mark, codeHit, best) {
   return c;
 }
 
-const out = document.getElementById('out'), q = document.getElementById('q'), clear = document.getElementById('clear');
+const out = document.getElementById('out'), q = document.getElementById('q'), go = document.getElementById('go');
 function render() {
-  clear.hidden = !q.value;
   out.replaceChildren();
   if (!q.value.trim()) { out.append(document.getElementById('help').content.cloneNode(true)); return; }
   const { hits, near } = search(q.value);
@@ -144,10 +145,18 @@ function render() {
     out.append(el('div', 'near', '您要找的是不是：'));
     near.forEach(([, r, m]) => out.append(card(r, m)));
   }
+  const again = el('button', '', '↺ 查別的名字');
+  again.id = 'again'; again.type = 'button';
+  again.onclick = () => { q.value = ''; render(); window.scrollTo(0, 0); q.focus(); };
+  out.append(again);
 }
 q.addEventListener('input', render);
-q.addEventListener('keydown', e => { if (e.key === 'Enter') q.blur(); });   // 按搜尋鍵收起鍵盤，看得到結果
-clear.onclick = () => { q.value = ''; render(); q.focus(); };
+// 按「搜尋」或鍵盤的搜尋鍵：收起鍵盤，讓結果整個看得到
+const done = () => { q.blur(); render(); window.scrollTo(0, 0); if (!q.value.trim()) q.focus(); };
+q.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); done(); } });
+go.onclick = done;
+q.addEventListener('focus', () => document.body.classList.add('typing'));
+q.addEventListener('blur', () => document.body.classList.remove('typing'));
 
 // 字放大（記住設定）
 const size = document.getElementById('size');
